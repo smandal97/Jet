@@ -3,7 +3,7 @@
 
 //static double r0;
 
-double get_dV( double * , double * );
+double get_dV( double * , double * , double , double );
 
 void setCoolingParams( struct domain * theDomain ){
 
@@ -44,6 +44,8 @@ void add_cooling( struct domain * theDomain , double dt ){
       double thp = t_jph[j];
       double thm = t_jph[j-1];
       double th = .5*(thp+thm);
+      double sinthj = theDomain->sinth[j];
+      double sindthj = theDomain->sindth[j];
       for( k=0 ; k<Np ; ++k ){
          double php = p_kph[k];
          double phm = p_kph[k-1];
@@ -54,7 +56,7 @@ void add_cooling( struct domain * theDomain , double dt ){
             double rm = rp - c->dr;
             double xp[3] = {rp,thp,php};
             double xm[3] = {rm,thm,phm};
-            double dV = get_dV(xp,xm);
+            double dV = get_dV(xp,xm,sinthj,sindthj);
             cool_src( c->prim , c->cons , dV*dt );
          }
       }

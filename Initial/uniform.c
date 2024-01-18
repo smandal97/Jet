@@ -5,7 +5,7 @@ void setICparams( struct domain * theDomain ){
 }
 
 void initial( double * prim , double * x ){
-   prim[RHO] = 1.0e-7;
+   prim[RHO] = 1e-2;
    prim[PPP] = prim[RHO]*1e-5;
    prim[UU1] = 0.0;
    prim[UU2] = 0.0;

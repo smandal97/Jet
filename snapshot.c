@@ -1,7 +1,7 @@
 
 #include "paul.h"
 
-double get_dV( double * , double * );
+double get_dV( double * , double * , double , double );
 void prim2cons( double * , double * , double , double );
 void cons2prim( double * , double * , double , double );
 
@@ -48,6 +48,8 @@ void snapshot( struct domain * theDomain , char * filestart ){
    for( j=j_min ; j<j_max ; ++j ){
       double thp = t_jph[j];
       double thm = t_jph[j-1];
+      double sinthj = theDomain->sinth[j];
+      double sindthj = theDomain->sindth[j];
       for( k=k_min ; k<k_max ; ++k ){
          double php = p_kph[k];
          double phm = p_kph[k-1];
@@ -60,7 +62,7 @@ void snapshot( struct domain * theDomain , char * filestart ){
             double im = (NUM_R)*(rm-Rmin)/(Rmax-Rmin);
             double xp[3] = {rp,thp,php};
             double xm[3] = {rm,thm,phm};
-            double dV = get_dV( xp , xm );
+            double dV = get_dV( xp , xm , sinthj , sindthj );
           
             double delta_i = ip-im; 
             int iip = (int) ip;
@@ -101,6 +103,9 @@ void snapshot( struct domain * theDomain , char * filestart ){
    double THETA_MAX = theDomain->theParList.thmax;
    double PHI_MAX   = theDomain->theParList.phimax;
 
+   double SINDTH = sin(0.5*(theDomain->t_jph[j]-theDomain->t_jph[j-1]));
+   double SINTH  = sin(0.5*(theDomain->t_jph[j]+theDomain->t_jph[j-1]));
+
    char fname_rad[256];
    strcpy( fname_rad , filestart );
    strcat( fname_rad , "_radial.dat" );
@@ -129,7 +134,7 @@ void snapshot( struct domain * theDomain , char * filestart ){
          double xp[3] = {rp,THETA_MAX,PHI_MAX};
          double xm[3] = {rm,THETA_MIN,0.0};
          double r = (2./3.)*(rp*rp*rp-rm*rm*rm)/(rp*rp-rm*rm);
-         double dV = get_dV( xp , xm );
+         double dV = get_dV( xp , xm , SINTH , SINDTH );
          cons2prim( &(cons_1d_avg[i*NUM_Q]) , P_out , r , dV );
          fprintf(pFile_1d,"%e ",r);
          fprintf(pFile_1d,"%e ",M_grid[i]);
@@ -286,7 +291,9 @@ void snapshot( struct domain * theDomain , char * filestart ){
       for( j=jmin ; j<j_max ; ++j ){
          xp[1] = t_jph[j];
          xm[1] = t_jph[j-1];
-         double dOmega = get_dV(xp,xm);
+         double sinthj = theDomain->sinth[j];
+         double sindthj = theDomain->sindth[j];
+         double dOmega = get_dV(xp,xm,sinthj,sindthj);
          fprintf(thFile,"%e ",.5*(t_jph[j]+t_jph[j-1]));
          fprintf(thFile,"%e %e %e %e",r_max[j],g_max[j],Eth[j]/dOmega,XEth[j]/dOmega);
          fprintf(thFile,"\n");

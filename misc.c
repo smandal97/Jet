@@ -1,8 +1,8 @@
 #include "paul.h"
 #include <string.h>
 
-double get_dA( double * , double * , int );
-double get_dV( double * , double * );
+double get_dA( double * , double * , double , double , int );
+double get_dV( double * , double * , double , double );
 
 double mindt( double * , double , double * , double * );
 
@@ -75,7 +75,9 @@ if( theDomain->rank==0 ){ printf("Find the segfault 2...\n"); sleep(1); }
             double r = (2./3.)*(rp*rp*rp-rm*rm*rm)/(rp*rp-rm*rm);
             double xp[3] = {rp,t_jph[j]  ,p_kph[k]  };
             double xm[3] = {rm,t_jph[j-1],p_kph[k-1]};
-            double dV = get_dV( xp , xm );
+            double sinthj = theDomain->sinth[j];
+            double sindthj = theDomain->sindth[j];
+            double dV = get_dV( xp , xm , sinthj , sindthj );
             double x[3] = {.5*(rp+rm),.5*(t_jph[j]+t_jph[j-1]),.5*(p_kph[k]+p_kph[k-1])};
             if( !restart_flag ){
                int icN = theDomain->theParList.Initial_Cons;
@@ -94,7 +96,7 @@ if( theDomain->rank==0 ){ printf("Find the segfault 2...\n"); sleep(1); }
                      double xn[3] = {.5*(rpn+rmn),.5*(t_jph[j]+t_jph[j-1]),.5*(p_kph[k]+p_kph[k-1])};
                      double xpn[3] = {rpn,t_jph[j]  ,p_kph[k]  };
                      double xmn[3] = {rmn,t_jph[j-1],p_kph[k-1]};
-                     double dVn = get_dV( xpn , xmn );
+                     double dVn = get_dV( xpn , xmn , sinthj , sindthj );
                      initial( c->prim , xn );
                      prim2cons( c->prim , c->cons , rn , xn[1] , dVn );
                      for( q=0 ; q<NUM_Q ; ++q ) consTot[q] += c->cons[q];
@@ -245,10 +247,12 @@ void move_BCs( struct domain * theDomain , double dt ){
             double rp = theCells[jk][isplit].riph;
             double xp[3] = {rmin_new,t_jph[j]  ,p_kph[k]  };
             double xm[3] = {rm      ,t_jph[j-1],p_kph[k-1]};
-            double dVl = get_dV(xp,xm);
+            double sinthj = theDomain->sinth[j];
+            double sindthj = theDomain->sindth[j];
+            double dVl = get_dV(xp,xm,sinthj,sindthj);
             xp[0] = rp;
             xm[0] = rmin_new;
-            double dVr = get_dV(xp,xm);
+            double dVr = get_dV(xp,xm,sinthj,sindthj);
             double fracL = dVl/(dVl+dVr);
             double fracR = dVr/(dVl+dVr);
             int q;
@@ -286,7 +290,7 @@ void move_BCs( struct domain * theDomain , double dt ){
             xm[0] = 0.0;
             xp[0] = rmin_new;
             double rl = (2./3.)*rmin_new;
-            dVl = get_dV(xp,xm);
+            dVl = get_dV(xp,xm,sinthj,sindthj);
             cons2prim( c0->cons , c0->prim , rl , .5*(xp[1]+xm[1]) , dVl );
 
             xm[0] = rmin_new;
@@ -294,7 +298,7 @@ void move_BCs( struct domain * theDomain , double dt ){
             rp = xp[0];
             rm = xm[0];
             double rr = (2./3.)*(rp*rp*rp-rm*rm*rm)/(rp*rp-rm*rm);
-            dVr = get_dV(xp,xm);
+            dVr = get_dV(xp,xm,sinthj,sindthj);
             cons2prim( c1->cons , c1->prim , rr , .5*(xp[1]+xm[1]) , dVr );
             c1->dr = rp-rm;
 
@@ -324,7 +328,7 @@ void move_BCs( struct domain * theDomain , double dt ){
                int d;
                for( d=0 ; d<3 ; ++d ) x[d] = .5*(xp[d]+xm[d]);
                initial( c->prim , x ); 
-               double dV = get_dV(xp,xm);
+               double dV = get_dV(xp,xm,sinthj,sindthj);
                double rr = (2./3.)*(rp*rp*rp-rm*rm*rm)/(rp*rp-rm*rm);
                prim2cons( c->prim , c->cons , rr , .5*(xp[1]+xm[1]) , dV );
             }
@@ -343,6 +347,8 @@ void regrid( struct domain * theDomain ){
    double jthresh = 0.1;
    int i,j,k;
    for( j=0 ; j<Nt ; ++j ){
+   double sinthj = theDomain->sinth[j];
+   double sindthj = theDomain->sindth[j];
    for( k=0 ; k<Np ; ++k ){
       int jk = j+Nt*k;
       for( i=2 ; i<Nr[jk]-1 ; ++i ){
@@ -373,7 +379,7 @@ void regrid( struct domain * theDomain ){
                initial( cnew->prim , x );
                cnew->riph = rlp;
                cnew->dr = rlp-rlm;
-               double dV = get_dV(xp,xm);
+               double dV = get_dV(xp,xm,sinthj,sindthj);
                double rr = (2./3.)*(rlp*rlp*rlp-rlm*rlm*rlm)/(rlp*rlp-rlm*rlm);
                prim2cons( cnew->prim , cnew->cons , rr , x[1] , dV );
             }
@@ -445,6 +451,8 @@ void calc_prim( struct domain * theDomain ){
    double * p_kph = theDomain->p_kph;
    int i,j,k;
    for( j=0 ; j<Nt ; ++j ){
+   double sinthj = theDomain->sinth[j];
+   double sindthj = theDomain->sindth[j];
       for( k=0 ; k<Np ; ++k ){
          for( i=0 ; i<Nr[j+Nt*k] ; ++i ){
             struct cell * c = &(theCells[j+Nt*k][i]);
@@ -454,7 +462,7 @@ void calc_prim( struct domain * theDomain ){
             double r = (2./3.)*(rp*rp*rp-rm*rm*rm)/(rp*rp-rm*rm);
             double xp[3] = {rp,t_jph[j]  ,p_kph[k]  };
             double xm[3] = {rm,t_jph[j-1],p_kph[k-1]};
-            double dV = get_dV( xp , xm );
+            double dV = get_dV( xp , xm , sinthj , sindthj );
             cons2prim( c->cons , c->prim , r , .5*(xp[1]+xm[1]) , dV );
          }
       }
@@ -474,13 +482,15 @@ void radial_flux( struct domain * theDomain , double dt ){
    int i,j,k;
    plm_r( theDomain );
    for( j=0 ; j<Nt ; ++j ){
+   double sinthj = theDomain->sinth[j];
+   double sindthj = theDomain->sindth[j];
       for( k=0 ; k<Np ; ++k ){
          for( i=0 ; i<Nr[j+Nt*k]-1 ; ++i ){
             struct cell * cp = theCells[j+Nt*k];
             double rp = cp[i].riph;
             double xp[3] = {rp,t_jph[j]  ,p_kph[k]  };
             double xm[3] = {rp,t_jph[j-1],p_kph[k-1]};
-            double dA = get_dA(xp,xm,0); 
+            double dA = get_dA(xp,xm,sinthj,sindthj,0); 
             riemann_r( &(cp[i]) , &(cp[i+1]) , cp[i].riph , .5*(xp[1]+xm[1]) , dA*dt );
          }
       }
@@ -525,6 +535,8 @@ void add_source( struct domain * theDomain , double dt ){
    double * p_kph = theDomain->p_kph;
    int i,j,k;
    for( j=0 ; j<Nt ; ++j ){
+   double sinthj = theDomain->sinth[j];
+   double sindthj = theDomain->sindth[j];
       for( k=0 ; k<Np ; ++k ){
          for( i=0 ; i<Nr[j+Nt*k] ; ++i ){
             struct cell * c = &(theCells[j+Nt*k][i]);
@@ -532,7 +544,7 @@ void add_source( struct domain * theDomain , double dt ){
             double rm = c->riph - c->dr;
             double xp[3] = {rp,t_jph[j]  ,p_kph[k]  };
             double xm[3] = {rm,t_jph[j-1],p_kph[k-1]};
-            double dV = get_dV(xp,xm);
+            double dV = get_dV(xp,xm,sinthj,sindthj);
             source( c->prim , c->cons , xp , xm , dV*dt );
          }    
       }    
@@ -575,6 +587,9 @@ void AMRsweep( struct domain * theDomain , struct cell ** swptr , int j , int k 
    double * p_kph = theDomain->p_kph;
    int * Nr = theDomain->Nr;
 
+   double sinthj = theDomain->sinth[j];
+   double sindthj = theDomain->sindth[j];
+
    double MaxShort = theDomain->theParList.MaxShort;
    double MaxLong  = theDomain->theParList.MaxLong;
 
@@ -606,7 +621,7 @@ void AMRsweep( struct domain * theDomain , struct cell ** swptr , int j , int k 
       double r = (2./3.)*(rp*rp*rp-rm*rm*rm)/(rp*rp-rm*rm);
       double xp[3] = {rp,t_jph[j]  ,p_kph[k]  };
       double xm[3] = {rm,t_jph[j-1],p_kph[k-1]};
-      double dV = get_dV( xp , xm );
+      double dV = get_dV( xp , xm , sinthj ,sindthj );
       cons2prim( sweep[iS].cons , sweep[iS].prim , r , .5*(xp[1]+xm[1]) , dV );
       //Shift Memory
       int blocksize = Nr[jk]-iS-2;
@@ -647,7 +662,7 @@ void AMRsweep( struct domain * theDomain , struct cell ** swptr , int j , int k 
       double r = (2./3.)*(rp*rp*rp-rm*rm*rm)/(rp*rp-rm*rm);
       double xp[3] = {rp,t_jph[j]  ,p_kph[k]  };
       double xm[3] = {rm,t_jph[j-1],p_kph[k-1]};
-      double dV = get_dV( xp , xm );
+      double dV = get_dV( xp , xm , sinthj , sindthj );
       cons2prim( sweep[iL].cons , sweep[iL].prim , r , .5*(xp[1]+xm[1]) , dV );
 
       rm = sweep[iL].riph;
@@ -655,7 +670,7 @@ void AMRsweep( struct domain * theDomain , struct cell ** swptr , int j , int k 
       r = (2./3.)*(rp*rp*rp-rm*rm*rm)/(rp*rp-rm*rm);
       xp[0] = rp;
       xm[0] = rm;
-      dV = get_dV( xp , xm );
+      dV = get_dV( xp , xm , sinthj , sindthj );
       cons2prim( sweep[iL+1].cons , sweep[iL+1].prim , r , .5*(xp[1]+xm[1]) , dV );
 
    }

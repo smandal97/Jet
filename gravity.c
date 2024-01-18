@@ -2,7 +2,7 @@
 #include "paul.h"
 
 //#define G_CONST     6.673e-8
-#define G_CONST     0.0
+#define G_CONST     1.0
 //#define G_NUM_R     1000 //This should really be NUM_R
 //#define G_EPS       0.0
 
@@ -54,7 +54,7 @@ double rhoc = 1./4./M_PI/sqrt(3.);
 double get_pot( double r ){
    double rhoc = 1./4./M_PI/sqrt(3.);
    double phi = -4.*M_PI*G_CONST*rhoc/sqrt( 1. + r*r/3. );
-phi = 0.0;
+   phi = -1./r;
 
    return( phi );
 }
@@ -64,7 +64,7 @@ void grav_src( double * cons , double dt , double r , double x ){
    double m  = cons[DEN];
    double Sr = cons[SS1];
    
-   double f = menc_force( x , r );
+   double f = -1./r/r;//menc_force( x , r );
 /* 
    double GM = 6.67e-8*5.45*2e33;
    double R = 2.47*7e10;
@@ -74,7 +74,7 @@ void grav_src( double * cons , double dt , double r , double x ){
    //printf("F=%e\n",m*f*dt);
 
    cons[SS1] += m*f*dt;
-//   cons[TAU] += Sr*f*dt;
+   //cons[TAU] += Sr*f*r*dt;
 
 }
 

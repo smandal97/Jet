@@ -3,7 +3,7 @@
 #include <string.h>
 
 void initial( double * , double * );
-double get_dV( double * , double * );
+double get_dV( double * , double * , double , double );
 void cons2prim( double * , double * , double , double , double );
 
 void boundary_r( struct domain * theDomain ){
@@ -38,7 +38,7 @@ void boundary_r( struct domain * theDomain ){
 
 }
 
-double get_dV( double * , double * );
+double get_dV( double * , double * , double , double );
 void prim2cons( double * , double * , double , double );
 
 void boundary_trans( struct domain * theDomain , struct face * theFaces , int * nn , int dim ){
@@ -70,6 +70,10 @@ void boundary_trans( struct domain * theDomain , struct face * theFaces , int * 
                j0 = Nt-1;
                j1 = Nt-2;
             }
+            double sindth0 = sin(0.5*(theDomain->t_jph[j0]-theDomain->t_jph[j0-1]));
+            double sinth0  = sin(0.5*(theDomain->t_jph[j0]+theDomain->t_jph[j0-1]));
+            double sindth1 = sin(0.5*(theDomain->t_jph[j1]-theDomain->t_jph[j1-1]));
+            double sinth1  = sin(0.5*(theDomain->t_jph[j1]+theDomain->t_jph[j1-1]));
             for( k=0 ; k<Np ; ++k ){
                int jk0 = j0+Nt*k;
                int jk1 = j1+Nt*k;
@@ -86,10 +90,10 @@ void boundary_trans( struct domain * theDomain , struct face * theFaces , int * 
                   //double r = (2./3.)*(rp*rp*rp-rm*rm*rm)/(rp*rp-rm*rm);
                   double xp[3] = {rp,t_jph[j0]  ,p_kph[k]  };
                   double xm[3] = {rm,t_jph[j0-1],p_kph[k-1]};
-                  double dV = get_dV( xp , xm );
+                  double dV = get_dV( xp , xm , sinth0 , sindth0 );
                   xp[1] = t_jph[j1  ];
                   xm[1] = t_jph[j1-1];
-                  double dV2 = get_dV( xp , xm );
+                  double dV2 = get_dV( xp , xm , sinth1 , sindth1 );
                   //prim2cons( c->prim , c->cons , r , dV );
                   int q;
                   for( q=0 ; q<NUM_Q ; ++q ){

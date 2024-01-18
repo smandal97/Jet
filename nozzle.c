@@ -24,20 +24,20 @@ void setNozzleParams( struct domain * theDomain ){
 void noz_src( double * cons , double dVdt , double r , double theta , double t , double r_min ){
 
    double r0,v,Vol,f,eta;
-   int wind = 0;
+   int wind = 1;
    if( !wind ){
 
-   //double r0 = 5.*r_min;
-      r0 = 2.*r_min;
+      r0 = 5.*r_min;
+      //r0 = 1.0;
       v = sqrt(1.-1./gam0/gam0);
 
       Vol = pow( sqrt(2.*M_PI)*r0 , 3. )*( 1. - exp(-2./th0/th0) )*th0*th0/sqrt(.5*M_PI);
-      f = (r/r0)*exp(-.5*r*r/r0/r0)*exp( (fabs(cos(theta))-1.) /th0/th0)/Vol;
+      f = (r/r0)*exp(-.5*r*r/r0/r0)/Vol*exp( (fabs(cos(theta))-1.) /th0/th0)/Vol;
       eta = eta0;
    //f *= exp(-(t-tmin)/tjet);
    }else{
    
-      r0 = 2.*r_min;
+      r0 = 1.0; //2.*r_min;
       v = 0.1;
       Vol = 8.*M_PI*pow( r0 , 3. );
       f = (r/r0)*exp(-.5*r*r/r0/r0)/Vol;
@@ -50,15 +50,14 @@ void noz_src( double * cons , double dVdt , double r , double theta , double t ,
    double SS = v*SE;
    double SM = SE/eta;
 
-   cons[DEN] += SM*dVdt;
-   cons[SS1] += SS*dVdt;// *cos(theta);
+   //cons[DEN] += SM*dVdt;
+   //cons[SS1] += SS*dVdt;// *cos(theta);
    //cons[SS2] += SS*dVdt*sin(theta)*(-r);
    cons[TAU] += SE*dVdt;
 
-   if( NUM_N > 0 ){
-      cons[NUM_C+0] += SM*dVdt;
-   }
-
+   //if( NUM_N > 0 ){
+      //cons[NUM_C+0] += SM*dVdt;
+   //}
 
 //   int q;
 //   for( q=NUM_C ; q<NUM_C+NUM_N ; ++q ){
@@ -153,7 +152,7 @@ void noz_set( double * prim , double r , double theta , double t , double r_min 
 
 }
 
-double get_dV( double * , double * );
+double get_dV( double * , double * , double , double );
 
 void nozzle( struct domain * theDomain , double dt ){
 
@@ -170,6 +169,8 @@ void nozzle( struct domain * theDomain , double dt ){
    for( j=0 ; j<Nt ; ++j ){
       double thp = t_jph[j];
       double thm = t_jph[j-1];
+      double sinthj = theDomain->sinth[j];
+      double sindthj = theDomain->sindth[j];
       double th = .5*(thp+thm);
       for( k=0 ; k<Np ; ++k ){
          double php = p_kph[k];
@@ -182,7 +183,7 @@ void nozzle( struct domain * theDomain , double dt ){
             double r  = rp - .5*c->dr;
             double xp[3] = {rp,thp,php};
             double xm[3] = {rm,thm,phm};
-            double dV = get_dV(xp,xm);
+            double dV = get_dV(xp,xm,sinthj,sindthj);
             noz_src( c->cons , dV*dt , r , th , t , r_min );
             //noz_set( c->prim , r , th );
          }

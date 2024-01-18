@@ -39,18 +39,23 @@ void gridSetup( struct domain * theDomain ){
 
 //printf("rank %d:  N0t = %d, N1t = %d, Nt = %d.\n",theDomain->rank,N0t,N1t,Nt);
 
-   theDomain->Nr    = (int *)    malloc( Np*Nt*sizeof(int) );
-   theDomain->t_jph = (double *) malloc( (Nt+1)*sizeof(double) );
-   theDomain->p_kph = (double *) malloc( (Np+1)*sizeof(double) );
+   theDomain->Nr     = (int *)    malloc( Np*Nt*sizeof(int) );
+   theDomain->t_jph  = (double *) malloc( (Nt+1)*sizeof(double) );
+   theDomain->p_kph  = (double *) malloc( (Np+1)*sizeof(double) );
+   theDomain->sinth  = (double *) malloc( (Nt+1)*sizeof(double) );
+   theDomain->sindth = (double *) malloc( (Nt+1)*sizeof(double) );
 
    ++(theDomain->t_jph);
    ++(theDomain->p_kph);
+   ++(theDomain->sinth);
+   ++(theDomain->sindth);
 
    int j,k;
 
 //   double dth = (THETA_MAX-THETA_MIN)/(double)NUM_T;
 //   double t0 = THETA_MIN + (double)N0t*dth;
    double dx = 1./NUM_T;
+   double del = 0.3;
    double x0 = (double)N0t*dx;
    double th0 = .4;
    double thmax = THETA_MAX;
@@ -59,7 +64,8 @@ void gridSetup( struct domain * theDomain ){
    for( j=-1 ; j<Nt ; ++j ){
       double x = x0 + ((double)j+1.)*dx;
 //      double theta = THETA_MIN + 2.*atan( tan(.5*th0)*exp(k0*x) )-th0;//(THETA_MAX-THETA_MIN)*x;
-      double theta = THETA_MIN + (THETA_MAX-THETA_MIN)*x;
+      double theta = THETA_MIN + x*(THETA_MAX - THETA_MIN) - del * sin(2.*M_PI*x); 
+//      double theta = THETA_MIN + (THETA_MAX-THETA_MIN)*x;
       theDomain->t_jph[j] = theta;//t0 + ((double)j+1.)*dth;
    }
    double dphi = PHI_MAX/(double)NUM_P;
@@ -67,6 +73,14 @@ void gridSetup( struct domain * theDomain ){
    for( k=-1 ; k<Np ; ++k ){
       theDomain->p_kph[k] = p0 + ((double)k+1.)*dphi;
    }
+   
+   for( j=0 ; j<Nt ; ++j ){
+      double dth = 0.5*(theDomain->t_jph[j]-theDomain->t_jph[j-1]);
+      double th  = 0.5*(theDomain->t_jph[j]+theDomain->t_jph[j-1]);
+      theDomain->sinth[j]  = sin(th);
+      theDomain->sindth[j] = sin(dth);
+   }
+   
 
    for( j=0 ; j<Nt ; ++j ){
       double dth_j = 1.001*(theDomain->t_jph[j]-theDomain->t_jph[j-1]);
