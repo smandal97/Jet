@@ -8,6 +8,7 @@ enum{C_FIXED,C_WRIEMANN,C_WCELL};
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #define MOVE_CELLS C_WCELL
 
@@ -51,6 +52,8 @@ struct domain{
    int Nt,Np,Ng;
    double * t_jph;
    double * p_kph;
+   double * sinth;
+   double * sindth; 
 
    double g_point_mass;
 

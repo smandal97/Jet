@@ -23,6 +23,12 @@ void generate_log( struct domain * );
 
 int main( int argc , char * argv[] ){
    
+   //TIMING DECLARATION
+   clock_t start, end;
+   double cpu_time_used;
+   //TIMING STARTS
+   start = clock();
+
    MPI_Init(&argc,&argv);
    struct domain theDomain = {0};
    read_par_file( &theDomain );
@@ -63,9 +69,19 @@ int main( int argc , char * argv[] ){
    possiblyOutput( &theDomain , 1 );
    generate_log( &theDomain );
    MPI_Barrier(theDomain.theComm);
+
+   //TIMING ENDS
+   end = clock();
+   //TIMING OUTPUT
+   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+   MPI_Allreduce( MPI_IN_PLACE , &cpu_time_used , 1 , MPI_DOUBLE , MPI_MAX , theDomain.theComm );
+   if(theDomain.rank==0) printf("Execution time is %.4e seconds\n", cpu_time_used);   
+
    MPI_Comm_free(&(theDomain.theComm));
    MPI_Finalize();
    freeDomain( &theDomain );
+
+
    return(0);
 
 }

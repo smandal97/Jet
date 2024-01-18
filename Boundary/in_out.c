@@ -1,7 +1,7 @@
 
 #include "../paul.h"
 
-double get_dV( double * , double * ); 
+double get_dV( double * , double * , double , double ); 
 void prim2cons( double * , double * , double , double , double );
 void initial( double * , double * );
 
@@ -24,6 +24,8 @@ void boundary_r( struct domain * theDomain ){
    for( j=0 ; j<Nt ; ++j ){
       double tp = t_jph[j];
       double tm = t_jph[j-1];
+      double sinthj = theDomain->sinth[j];
+      double sindthj = theDomain->sindth[j];
       for( k=0 ; k<Np ; ++k ){
          double pp = p_kph[k];
          double pm = p_kph[k-1];
@@ -36,7 +38,7 @@ void boundary_r( struct domain * theDomain ){
          double x[3] = {r1,.5*(tp+tm),.5*(pp+pm)};
          double xp[3] = {r1, tp , pp};
          double xm[3] = {0.0,tm,pm};
-         double dV = get_dV( xp , xm );
+         double dV = get_dV( xp , xm , sinthj , sindthj );
          initial( c1->prim , x );
 
 double phase1 = .5*(tp+tm);
@@ -84,7 +86,11 @@ void boundary_trans( struct domain * theDomain , struct face * theFaces , int * 
             if( LR==1 ){
                j0 = Nt-1;
                j1 = Nt-2;
-            }    
+            }
+            double sindth0 = sin(0.5*(theDomain->t_jph[j0]-theDomain->t_jph[j0-1]));
+            double sinth0  = sin(0.5*(theDomain->t_jph[j0]+theDomain->t_jph[j0-1]));
+            double sindth1 = sin(0.5*(theDomain->t_jph[j1]-theDomain->t_jph[j1-1]));
+            double sinth1  = sin(0.5*(theDomain->t_jph[j1]+theDomain->t_jph[j1-1]));     
             for( k=0 ; k<Np ; ++k ){
                int jk0 = j0+Nt*k;
                int jk1 = j1+Nt*k;
@@ -101,10 +107,10 @@ void boundary_trans( struct domain * theDomain , struct face * theFaces , int * 
                   //double r = (2./3.)*(rp*rp*rp-rm*rm*rm)/(rp*rp-rm*rm);
                   double xp[3] = {rp,t_jph[j0]  ,p_kph[k]  };
                   double xm[3] = {rm,t_jph[j0-1],p_kph[k-1]};
-                  double dV = get_dV( xp , xm );
+                  double dV = get_dV( xp , xm , sinth0 , sindth0 );
                   xp[1] = t_jph[j1  ];
                   xm[1] = t_jph[j1-1];
-                  double dV2 = get_dV( xp , xm );
+                  double dV2 = get_dV( xp , xm , sinth1 , sindth1 );
                   //prim2cons( c->prim , c->cons , r , dV );
                   int q;
                   for( q=0 ; q<NUM_Q ; ++q ){

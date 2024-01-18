@@ -1,26 +1,26 @@
 
-INITIAL  = entropy
-HYDRO    = rel_sph
+INITIAL  = bondi_ss
+HYDRO    = euler_sph
 GEOMETRY = spherical
 BOUNDARY = polar
 RIEMANN  = hllc
 TIMESTEP = rk2
-OUTPUT   = h5out
-RESTART  = h5in
+OUTPUT   = ascii
+RESTART  = no_restart
 
 UNAME = $(shell uname)
 ifeq ($(UNAME),Linux)
-H55 = /home/install/app/hdf5
+H55 = /apps/spack/bell/apps/hdf5/1.8.21-intel-19.0.5-o3n4r6z
 endif
 ifeq ($(UNAME),Darwin)
-H55 = /opt/local
+H55 = /opt/homebrew/opt/hdf5
 endif
 
 CC = mpicc
 FLAGS = -O3 -Wall -g
 
 INC = -I$(H55)/include
-LIB = -L$(H55)/lib -lm -lhdf5
+LIB = -L$(H55)/lib
 
 OBJ = main.o readpar.o onestep.o exchange.o plm.o domain.o faces.o cooling.o nozzle.o gravity.o misc.o mpisetup.o gridsetup.o $(RIEMANN).o $(TIMESTEP).o $(INITIAL).o $(HYDRO).o $(GEOMETRY).o $(BOUNDARY).o $(OUTPUT).o snapshot.o report.o $(RESTART).o profiler.o
 
@@ -54,7 +54,7 @@ $(RESTART).o : Restart/$(RESTART).c paul.h
 	$(CC) $(FLAGS) $(INC) -c Restart/$(RESTART).c
 
 jet: $(OBJ) paul.h
-	$(CC) $(FLAGS) $(LIB) -o jet $(OBJ)
+	$(CC) $(FLAGS) $(LIB) -o jet $(OBJ) -lm -lhdf5
 
 clean:
-	rm -f *.o jet
+	rm -f *.o *.dat jet

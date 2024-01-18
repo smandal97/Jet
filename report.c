@@ -16,26 +16,29 @@ void report( struct domain * theDomain , double t ){
    if( rank==0 ) jmin = 0;
    if( rank==size-1 ) jmax = Nt;
 
-   double L1 = 0.0;
-   double uSum = 0.0;
-   double uXSum = 0.0;
-   double ESum = 0.0;
-   double ETherm = 0.0;
-   double EXSum = 0.0;
-   double EJet = 0.0;
-   double XSum = 0.0;
-   double MSum = 0.0;
-   double Ni   = 0.0;
-   double uMax = 0.0;
-   double gh_max = 0.0;
-   double rMax = 0.0;
-   double rMin = HUGE_VAL;
-   double I_th = 0.0;
+   double L1     = 0.0;
+   double uSum   = 0.0;
+   double ESum     = 0.0;
+   double EJet     = 0.0;
+   double XSum     = 0.0;
+   double MSum     = 0.0;
+   double Ni       = 0.0;
+   double uMax     = 0.0;
+   double gh_max   = 0.0;
+   double rMax     = 0.0;
+   double rMin     = HUGE_VAL;
+   double I_th     = 0.0;
+   double I_th_rel = 0.0;
+   double Pdrop    = 0.0;
+   double zh       = 0.0;
+   double rzonec   = 0.0;
+   double rperpc   = 0.0;
+
    int i,j;
    for( j=jmin ; j<jmax ; ++j ){
       int jk = j;
       double dOmega = 2.*M_PI*(cos(t_jph[j-1])-cos(t_jph[j]));
-      double dE = 0.0;
+      double dE = 0.0, dE_rel = 0.0;
       for( i=0 ; i<Nr[jk] ; ++i ){
          struct cell * c = &(theCells[jk][i]);
          double ur = c->prim[UU1];
@@ -48,37 +51,46 @@ void report( struct domain * theDomain , double t ){
          double h = 1.+4.*c->prim[PPP]/c->prim[RHO];
          double gam = sqrt( 1. + u*u );
          uSum += u*E;
-         uXSum += u*X*E;
          ESum += E;
-         ETherm += (3.*c->prim[PPP])*c->cons[DEN]/c->prim[RHO];
-         EXSum += E*X;
          dE += E;
          double u_eff = sqrt( gam*h*gam*h - 1.0 );
-         if( u_eff > 1.0 ) EJet += E;
+         if( u_eff > 1.0 ){
+            EJet   += E;
+            dE_rel += E;
+         }
          XSum += X*E;
          MSum += M;
          Ni += X*M;
          if( uMax < u ) uMax = u;
          if( gh_max < gam*h ) gh_max = gam*h;
+         if( i ){
+            struct cell * cM = &(theCells[jk][i-1]);
+            double Pplus     = c->prim[PPP];
+            double Pminus    = cM->prim[PPP];
+            if(Pplus-Pminus>Pdrop) rzonec = (c->riph + cM->riph)/2;
+         }
+      if( !j ) zh = rzonec;
+      if( rzonec*sin(t_jph[j])>rperpc ) rperpc = rzonec*sin(t_jph[j]);
       }
       I_th += dE*dE/dOmega;
+      I_th_rel +=dE_rel*dE_rel/dOmega;
    }
 
    MPI_Allreduce( MPI_IN_PLACE , &uMax   , 1 , MPI_DOUBLE , MPI_MAX , grid_comm );
    MPI_Allreduce( MPI_IN_PLACE , &gh_max , 1 , MPI_DOUBLE , MPI_MAX , grid_comm );
-   MPI_Allreduce( MPI_IN_PLACE , &uSum , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
-   MPI_Allreduce( MPI_IN_PLACE , &uXSum , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
-   MPI_Allreduce( MPI_IN_PLACE , &ESum , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
-   MPI_Allreduce( MPI_IN_PLACE , &ETherm , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
-   MPI_Allreduce( MPI_IN_PLACE , &EXSum , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
-   MPI_Allreduce( MPI_IN_PLACE , &EJet , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
-   MPI_Allreduce( MPI_IN_PLACE , &XSum , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
-   MPI_Allreduce( MPI_IN_PLACE , &MSum , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
-   MPI_Allreduce( MPI_IN_PLACE , &Ni   , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
-   MPI_Allreduce( MPI_IN_PLACE , &I_th   , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
+   MPI_Allreduce( MPI_IN_PLACE , &uSum     , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
+   MPI_Allreduce( MPI_IN_PLACE , &ESum     , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
+   MPI_Allreduce( MPI_IN_PLACE , &EJet     , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
+   MPI_Allreduce( MPI_IN_PLACE , &XSum     , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
+   MPI_Allreduce( MPI_IN_PLACE , &MSum     , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
+   MPI_Allreduce( MPI_IN_PLACE , &Ni       , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
+   MPI_Allreduce( MPI_IN_PLACE , &I_th     , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
+   MPI_Allreduce( MPI_IN_PLACE , &I_th_rel , 1 , MPI_DOUBLE , MPI_SUM , grid_comm );
+   MPI_Allreduce( MPI_IN_PLACE , &rperpc   , 1 , MPI_DOUBLE , MPI_MAX , grid_comm );
 
    double uAv = uSum/ESum;
    double sintj2 = ESum/sqrt( 4.*M_PI*I_th );
+   double sintj2_rel = EJet/sqrt( 4.*M_PI*I_th_rel );
 
    for( j=jmin ; j<jmax ; ++j ){
       int jk = j;
@@ -117,8 +129,7 @@ void report( struct domain * theDomain , double t ){
 
    if( rank==0 ){
       FILE * rFile = fopen("report.dat","a");
-      fprintf(rFile,"%e %e %e %e %e %e %e %e %e %e %e %e %e\n",t,rMax,rMin,uAv,uMax,ESum,MSum,EJet,gh_max,v_phot,Ni,sintj2,ETherm);
-      //fprintf(rFile,"%e %e %e %e %e\n",t,uSum,ESum,uXSum,EXSum);
+      fprintf(rFile,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n",t,rMax,rMin,uAv,uMax,ESum,MSum,EJet,gh_max,v_phot,Ni,sintj2,sintj2_rel,zh,rperpc);
       fclose(rFile);
    }
 

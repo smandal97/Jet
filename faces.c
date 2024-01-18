@@ -1,7 +1,7 @@
 
 #include "paul.h"
 
-double get_dA( double * , double * , int );
+double get_dA( double * , double * , double , double , int );
 
 int get_num_tpFaces( int Nt , int Np , int dim ){
    if( dim==1 ) return( (Nt-1)*Np );
@@ -13,6 +13,10 @@ void addFace( struct face * theFaces , int n , struct cell * cL , struct cell * 
    for( d=0 ; d<3 ; ++d ) theFaces[n].cm[d] = .5*(xp[d]+xm[d]);
    double rp = xp[0];
    double rm = xm[0];
+
+   double sindth = sin(0.5*(xp[1]-xm[1]));
+   double sinth  = sin(0.5*(xp[1]+xm[1]));
+
    double r2 = (rp*rp+rm*rm+rp*rm)/3.;
    theFaces[n].cm[0] = r2/(.5*(rp+rm));
    theFaces[n].L   = cL;
@@ -20,7 +24,7 @@ void addFace( struct face * theFaces , int n , struct cell * cL , struct cell * 
    theFaces[n].dxL = dxL;
    theFaces[n].dxR = dxR;
    theFaces[n].dr  = xp[0]-xm[0];
-   theFaces[n].dA  = get_dA(xp,xm,dim);
+   theFaces[n].dA  = get_dA(xp,xm,sinth,sindth,dim);
 }
 
 void buildfaces( struct domain * theDomain , struct face * theFaces , int * ntj , int dim , int mode ){

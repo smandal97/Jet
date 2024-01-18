@@ -11,11 +11,12 @@ void setICparams( struct domain * theDomain ){
  
 void initial( double * prim , double * x ){
 
-   double n = 9.0;
+   double m = 0.0;
+   double n = 7.0;
    double s = 0.0; 
 
    double r  = x[0];
-   double t   = T_MIN;
+   double t  = T_MIN;
 
    double g = 1.0;
    double q = 1.0;
@@ -26,18 +27,9 @@ void initial( double * prim , double * x ){
    double R0 = pow( pow(t,n-3.)*pow(g,n)/q , 1./(n-s) );
 
    double rho = rho1+rho2;
+   if(r<5e-2) rho = pow(5e-2/t/g,-n)*pow(t,-3.);
    double X   = rho1*rho1/(rho1*rho1+rho2*rho2);
    double v   = (r/t)*X;
-
-   double r1 = 0.05*R0;
-//   double r1 = 0.007*R0;
-//   double r1 = 0.002*R0;
-//   double r1 = 0.1*R0;
-   if( r<r1 ){
-      //rho = pow(r1/t/g,-n)*pow(t,-3.)*pow(r/r1,-1.);
-      rho = pow(r1/t/g,-n)*pow(t,-3.)*pow(r/r1,-n*r/r1);
-//      v *= pow(r/r1,20.);
-   }
 
    if( X < 0.5 ){
       X = 0.0;
@@ -56,7 +48,7 @@ void initial( double * prim , double * x ){
 
    double Pmin = rho*cs*cs;
 
-   prim[RHO] = rho*exp(ptb);
+   prim[RHO] = rho*exp(0.*ptb);
    prim[PPP] = Pmin;
    prim[UU1] = v;
    prim[UU2] = 0.0;

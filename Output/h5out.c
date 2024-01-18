@@ -83,7 +83,7 @@ int Cell2Doub( struct cell * c , double * Q , int mode ){
    }
 }
 
-double get_dV( double * , double * );
+double get_dV( double * , double * , double , double );
 void prim2cons( double * , double * , double , double , double );
 void cons2prim( double * , double * , double , double , double );
 void reset_entropy( struct domain * );
